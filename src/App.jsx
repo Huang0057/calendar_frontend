@@ -19,7 +19,7 @@ function App() {
         <h1 className="text-2xl font-bold m-0" style={{ color: '#000000' }}>Todo Management</h1>
       </Header>
       <Content className="p-4">
-        <div style={{ maxWidth: '380px' }} className="mx-auto">
+        <div style={{ maxWidth: '640px' }} className="mx-auto">
           <TodoForm />
           <div className="mt-4">
             <TodoList />
