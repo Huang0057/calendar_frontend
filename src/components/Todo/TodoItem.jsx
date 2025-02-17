@@ -1,4 +1,4 @@
-import  { useState } from 'react';
+import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { Card, Button, Input, Checkbox, Space } from 'antd';
 import { 
@@ -12,26 +12,44 @@ import { useTodo } from '@/hooks/useTodo';
 function TodoItem({ todo }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(todo.title);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [localChecked, setLocalChecked] = useState(todo.isCompleted);
   const { updateTodoItem, removeTodo } = useTodo();
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (editedTitle.trim()) {
-      updateTodoItem(todo.id, { 
-        ...todo,
-        title: editedTitle 
-      });
-      setIsEditing(false);
+      try {
+        await updateTodoItem(todo.id, { 
+          ...todo,
+          title: editedTitle 
+        });
+        setIsEditing(false);
+      } catch (error) {
+        console.error('Failed to update todo:', error);
+      }
     }
   };
 
-  const handleToggleComplete = async () => {
+  const handleToggleComplete = async (e) => {
+    if (isUpdating) return;
+    
     try {
+      setIsUpdating(true);
+      const newIsCompleted = e.target.checked;
+      
+      // 立即更新本地狀態以獲得即時反饋
+      setLocalChecked(newIsCompleted);
+      
       await updateTodoItem(todo.id, {
         ...todo,
-        isCompleted: !todo.isCompleted
+        isCompleted: newIsCompleted
       });
     } catch (error) {
+      // 如果 API 調用失敗，恢復本地狀態
+      setLocalChecked(!e.target.checked);
       console.error('Failed to toggle todo:', error);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -63,10 +81,11 @@ function TodoItem({ todo }) {
     <Card variant="outlined" className="shadow-sm">
       <div className="flex items-center gap-4">
         <Checkbox
-          checked={todo.isCompleted}
+          checked={localChecked}
           onChange={handleToggleComplete}
+          disabled={isUpdating}
         />
-        <span className={`flex-1 ${todo.isCompleted ? 'line-through text-gray-500' : ''}`}>
+        <span className={`flex-1 ${localChecked ? 'line-through text-gray-500' : ''}`}>
           {todo.title}
         </span>
         <Space>

@@ -31,15 +31,7 @@ export async function updateTodo(id, updates) {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      id: id,
-      title: updates.title,
-      description: updates.description,
-      isCompleted: updates.isCompleted,
-      dueDate: updates.dueDate,
-      priority: updates.priority,
-      parentId: updates.parentId
-    }),
+    body: JSON.stringify(updates),    
   });
   if (!response.ok) {
     const error = await response.text();

@@ -1,13 +1,12 @@
-
 import TodoList from './components/Todo/TodoList';
 import TodoForm from './components/Todo/TodoForm';
-import { Layout, Space } from 'antd';
+import { Layout } from 'antd';
 
 const { Header, Content } = Layout;
 
 function App() {
   return (
-    <Layout className="min-h-screen bg-white">
+    <Layout style={{ minHeight: '100vh' }} className="bg-gray-100">
       <Header 
         style={{ 
           backgroundColor: '#ffffff',
@@ -21,13 +20,14 @@ function App() {
       </Header>
       <Content className="p-4">
         <div style={{ maxWidth: '380px' }} className="mx-auto">
-          <Space direction="vertical" style={{ width: '100%' }} size="middle">
-            <TodoForm />
+          <TodoForm />
+          <div className="mt-4">
             <TodoList />
-          </Space>
+          </div>
         </div>
       </Content>
     </Layout>
   );
 }
+
 export default App;

@@ -24,31 +24,37 @@ export function useTodo() {
 
   const addTodo = async (todo) => {
     try {
-      await createTodo(todo);
-      // 重新獲取所有待辦事項
-      await fetchTodos();
+      const newTodo = await createTodo(todo);
+      setTodos(prevTodos => [...prevTodos, newTodo]);
+      return newTodo;
     } catch (error) {
       console.error('Failed to add todo:', error);
+      throw error;
     }
   };
 
   const updateTodoItem = async (id, updates) => {
     try {
-      await updateTodo(id, updates);
-      // 重新獲取所有待辦事項
-      await fetchTodos();
+      const updatedTodo = await updateTodo(id, updates);
+      setTodos(prevTodos => 
+        prevTodos.map(todo => 
+          todo.id === id ? updatedTodo : todo
+        )
+      );
+      return updatedTodo;
     } catch (error) {
       console.error('Failed to update todo:', error);
+      throw error;
     }
   };
 
   const removeTodo = async (id) => {
     try {
       await deleteTodo(id);
-      // 重新獲取所有待辦事項
-      await fetchTodos();
+      setTodos(prevTodos => prevTodos.filter(todo => todo.id !== id));
     } catch (error) {
       console.error('Failed to delete todo:', error);
+      throw error;
     }
   };
 
@@ -58,6 +64,6 @@ export function useTodo() {
     addTodo,
     updateTodoItem,
     removeTodo,
-    fetchTodos  // 導出 fetchTodos 以便需要時手動重新獲取
+    fetchTodos
   };
 }
