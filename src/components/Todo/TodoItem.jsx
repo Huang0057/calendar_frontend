@@ -132,11 +132,11 @@ function TodoItem({ todo }) {
               items={[
                 {
                   key: '1',
-                  label: 'Sub-tasks',
+                  label: 'Subtasks',
                   children: (
                     <div className="space-y-2">
                       {localTodo.subTasks.map(subtask => (
-                        <TodoItem key={subtask.id} localTodo={subtask} />
+                        <TodoItem key={subtask.id} todo={subtask} />
                       ))}
                     </div>
                   )
