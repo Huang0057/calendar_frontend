@@ -32,10 +32,10 @@ function TodoItem({ todo }) {
 
   const handleUpdate = async (updatedTodo) => {
     try {
-      setLocalTodo({ ...todo, ...updatedTodo }); // 先更新本地狀態
+      setLocalTodo({ ...todo, ...updatedTodo }); 
       await updateTodoItem(todo.id, updatedTodo);
     } catch (error) {
-      setLocalTodo(todo); // 如果失敗，回滾到原始狀態
+      setLocalTodo(todo); 
       console.error('Failed to update todo:', error);
       throw error;
     }
@@ -132,7 +132,7 @@ function TodoItem({ todo }) {
               items={[
                 {
                   key: '1',
-                  label: 'Subtasks',
+                  label: <span className="font-bold">Subtasks</span>,
                   children: (
                     <div className="space-y-2">
                       {localTodo.subTasks.map(subtask => (
