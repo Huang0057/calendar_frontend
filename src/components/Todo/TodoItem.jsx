@@ -1,22 +1,28 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { Card, Button, Checkbox, Tag, Collapse } from 'antd';
+import { Card, Button, Checkbox, Tag, Collapse, Modal, message } from 'antd';
 import { 
   EditOutlined,
   DeleteOutlined,
   CalendarOutlined,
-  CheckOutlined
+  CheckOutlined,
+  PlusOutlined
 } from '@ant-design/icons';
-import { useTodo } from '@/hooks/useTodo';
 import dayjs from 'dayjs';
-import EditTodoModal from './EditTodoModal';
+import TodoModal from './TodoModal';
+import { useTodoContext } from '@/hooks/useTodoContext';
 
 function TodoItem({ todo }) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [localChecked, setLocalChecked] = useState(todo.isCompleted);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const { updateTodoItem, removeTodo } = useTodo();
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    mode: null  // 'edit' or 'add-subtask'
+  });
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const { updateTodoItem, removeTodo } = useTodoContext();
   const [localTodo, setLocalTodo] = useState(todo);
+  const [isDeleting, setIsDeleting] = useState(false);
  
   const priorityColors = {
     0: 'success',
@@ -30,40 +36,111 @@ function TodoItem({ todo }) {
     2: 'High'
   };
 
-  const handleUpdate = async (updatedTodo) => {
+  const handleUpdate = async (updatedData) => {
     try {
-      setLocalTodo({ ...todo, ...updatedTodo }); 
-      await updateTodoItem(todo.id, updatedTodo);
+      if (modalState.mode === 'edit') {        
+        const optimisticUpdate = { ...localTodo, ...updatedData };
+        setLocalTodo(optimisticUpdate);
+        const result = await updateTodoItem(localTodo.id, updatedData);
+        setLocalTodo(result); 
+      } else {            
+        const newSubtask = {
+          ...updatedData,
+          parentId: localTodo.id,
+          isCompleted: false
+        };
+                
+        const optimisticSubtask = {
+          ...newSubtask,
+          id: Date.now(), 
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        setLocalTodo(prev => ({
+          ...prev,
+          subTasks: [...(prev.subTasks || []), optimisticSubtask]
+        }));
+
+        try {
+          await updateTodoItem(localTodo.id, newSubtask);
+        } catch (error) {
+          setLocalTodo(prev => ({
+            ...prev,
+            subTasks: prev.subTasks.filter(task => task.id !== optimisticSubtask.id)
+          }));
+          throw error;
+        }
+      }
     } catch (error) {
-      setLocalTodo(todo); 
       console.error('Failed to update todo:', error);
       throw error;
     }
   };
 
+  const handleDelete = async () => {
+    try {
+      setIsDeleting(true);
+      
+      // 先在UI中隱藏
+      setLocalTodo(prev => ({ ...prev, isDeleted: true }));
+      
+      await removeTodo(todo.id);
+      message.success('Todo deleted successfully');
+    } catch (error) {
+      // 發生錯誤時回溯
+      setLocalTodo(prev => ({ ...prev, isDeleted: false }));
+      message.error('Failed to delete todo');
+      console.error('Delete failed:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const showDeleteConfirm = () => {
+    setIsDeleteModalOpen(true);
+  };
+
   const handleToggleComplete = async (e) => {
     if (isUpdating) return;
     
+    const newIsCompleted = e.target.checked;
+    setIsUpdating(true);
+    setLocalChecked(newIsCompleted);
+    
     try {
-      setIsUpdating(true);      
-      const newIsCompleted = e.target.checked;      
-      
-      setLocalChecked(newIsCompleted);
-      
       const updateData = {
-        ...todo,
         isCompleted: newIsCompleted,
         completedAt: newIsCompleted ? new Date().toISOString() : null
       };
       
-      console.log('Update data:', updateData);
-    } catch (error) {      
-      setLocalChecked(!e.target.checked);
+      await updateTodoItem(localTodo.id, updateData);
+    } catch (error) {
+      setLocalChecked(!newIsCompleted);
       console.error('Failed to toggle todo:', error);
     } finally {
       setIsUpdating(false);
     }
   };
+
+  const openModal = (mode) => {
+    setModalState({
+      isOpen: true,
+      mode
+    });
+  };
+
+  const closeModal = () => {
+    setModalState({
+      isOpen: false,
+      mode: null
+    });
+  };
+
+  // 如果已刪除，不渲染任何內容
+  if (localTodo.isDeleted) {
+    return null;
+  }
 
   return (
     <>
@@ -74,14 +151,16 @@ function TodoItem({ todo }) {
             key="edit"
             type="text"
             icon={<EditOutlined />}
-            onClick={() => setIsEditModalOpen(true)}
+            onClick={() => openModal('edit')}
+            disabled={isDeleting}
           />,
           <Button
             key="delete"
             type="text"
             danger
             icon={<DeleteOutlined />}
-            onClick={() => removeTodo(localTodo.id)}
+            onClick={showDeleteConfirm}
+            loading={isDeleting}
           />
         ]}
       >
@@ -90,7 +169,7 @@ function TodoItem({ todo }) {
             <Checkbox
               checked={localChecked}
               onChange={handleToggleComplete}
-              disabled={isUpdating}
+              disabled={isUpdating || isDeleting}
             />
             <div className="flex-1">
               <div className="flex items-center justify-between">
@@ -125,7 +204,7 @@ function TodoItem({ todo }) {
             )}
           </div>
 
-          {localTodo.subTasks?.length > 0 && (
+          {!localTodo.parentId && (
             <Collapse 
               ghost 
               className="ml-7"
@@ -134,10 +213,21 @@ function TodoItem({ todo }) {
                   key: '1',
                   label: <span className="font-bold">Subtasks</span>,
                   children: (
-                    <div className="space-y-2">
-                      {localTodo.subTasks.map(subtask => (
-                        <TodoItem key={subtask.id} todo={subtask} />
-                      ))}
+                    <div className="space-y-4">
+                      <Button 
+                        type="dashed"
+                        icon={<PlusOutlined />}
+                        onClick={() => openModal('add-subtask')}
+                        block
+                        disabled={isDeleting}
+                      >
+                        Add Subtask
+                      </Button>
+                      <div className="space-y-2">
+                        {localTodo.subTasks?.map(subtask => (
+                          <TodoItem key={subtask.id} todo={subtask} />
+                        ))}
+                      </div>
                     </div>
                   )
                 }
@@ -147,12 +237,26 @@ function TodoItem({ todo }) {
         </div>
       </Card>
 
-      <EditTodoModal
-        todo={localTodo}
-        open={isEditModalOpen}
-        onCancel={() => setIsEditModalOpen(false)}
+      <TodoModal
+        todo={modalState.mode === 'edit' ? localTodo : null}
+        parentId={modalState.mode === 'add-subtask' ? localTodo.id : undefined}
+        open={modalState.isOpen}
+        onCancel={closeModal}
         onSubmit={handleUpdate}
       />
+      
+      <Modal
+        title="Delete Todo"
+        open={isDeleteModalOpen}
+        onOk={handleDelete}
+        onCancel={() => setIsDeleteModalOpen(false)}
+        okText="Yes"
+        cancelText="No"
+        okType="danger"
+        centered
+      >
+        <p>Are you sure you want to delete this todo?</p>
+      </Modal>
     </>
   );
 }

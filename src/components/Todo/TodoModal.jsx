@@ -5,45 +5,65 @@ import dayjs from 'dayjs';
 
 const { TextArea } = Input;
 
-function EditTodoModal({ todo, open, onCancel, onSubmit }) {
+function TodoModal({ todo, parentId, open, onCancel, onSubmit }) {
   const [form] = Form.useForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isEditMode = Boolean(todo);
+  const modalTitle = isEditMode ? 'Edit Todo' : parentId ? 'Add Subtask' : 'Add Todo';
 
   const handleSubmit = async (values) => {
     if (isSubmitting) return;
 
     try {
       setIsSubmitting(true);
-      const updatedTodo={
-        ...todo,
+      const submitData = {
         ...values,
         dueDate: values.dueDate?.toISOString(),
         priority: Number(values.priority)
       };
-      await onSubmit(updatedTodo);
-      onCancel(); // 成功後直接關閉
+
+      if (isEditMode) {
+        // 編輯模式
+        await onSubmit({ ...todo, ...submitData });
+      } else {
+        // 新增模式
+        await onSubmit({
+          ...submitData,
+          parentId,
+          isCompleted: false
+        });
+      }
+      
+      onCancel(); 
     } catch (error) {
-      console.error('Failed to update todo:', error);
+      console.error('Failed to submit todo:', error);
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  // Modal 開啟時設置表單初始值
+ 
   useEffect(() => {
     if (open) {
-      form.setFieldsValue({
-        title: todo.title,
-        description: todo.description,
-        dueDate: todo.dueDate ? dayjs(todo.dueDate) : null,
-        priority: todo.priority
-      });
+      if (isEditMode) {
+        // 編輯模式
+        form.setFieldsValue({
+          title: todo.title,
+          description: todo.description,
+          dueDate: todo.dueDate ? dayjs(todo.dueDate) : null,
+          priority: todo.priority
+        });
+      } else {
+        // 新增模式
+        form.resetFields();
+        form.setFieldValue('priority', 1);
+      }
     }
-  }, [open, todo, form]);
+  }, [open, todo, form, isEditMode]);
 
   return (
     <Modal
-      title="Edit Todo"
+      title={modalTitle}
       open={open}
       onCancel={onCancel}
       footer={null}
@@ -57,7 +77,7 @@ function EditTodoModal({ todo, open, onCancel, onSubmit }) {
         <Form.Item
           name="title"
           label="Title"
-          rules={[{ required: true, message: 'Please input todo title!' }]}
+          rules={[{ required: true, message: 'Please input title!' }]}
         >
           <Input />
         </Form.Item>
@@ -98,7 +118,7 @@ function EditTodoModal({ todo, open, onCancel, onSubmit }) {
               htmlType="submit"
               loading={isSubmitting}
             >
-              Save Changes
+              {isEditMode ? 'Save Changes' : 'Add'}
             </Button>
           </div>
         </Form.Item>
@@ -107,24 +127,24 @@ function EditTodoModal({ todo, open, onCancel, onSubmit }) {
   );
 }
 
-EditTodoModal.propTypes = {
-    todo: PropTypes.shape({
-      id: PropTypes.number.isRequired,
-      title: PropTypes.string.isRequired,
-      description: PropTypes.string,
-      isCompleted: PropTypes.bool.isRequired,
-      createdAt: PropTypes.string,
-      updatedAt: PropTypes.string,
-      completedAt: PropTypes.string,
-      dueDate: PropTypes.string,
-      priority: PropTypes.number,
-      parentId: PropTypes.number,
-      subTasks: PropTypes.array
-    }).isRequired,
-    open: PropTypes.bool.isRequired,
-    onCancel: PropTypes.func.isRequired,
-    onSubmit: PropTypes.func.isRequired
-  };
+TodoModal.propTypes = {
+  todo: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    title: PropTypes.string.isRequired,
+    description: PropTypes.string,
+    isCompleted: PropTypes.bool.isRequired,
+    createdAt: PropTypes.string,
+    updatedAt: PropTypes.string,
+    completedAt: PropTypes.string,
+    dueDate: PropTypes.string,
+    priority: PropTypes.number,
+    parentId: PropTypes.number,
+    subTasks: PropTypes.array
+  }),
+  parentId: PropTypes.number,
+  open: PropTypes.bool.isRequired,
+  onCancel: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired
+};
 
-
-export default EditTodoModal;
+export default TodoModal;
