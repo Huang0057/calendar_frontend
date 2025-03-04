@@ -165,6 +165,27 @@ function TodoItem({ todo }) {
         ]}
       >
         <div className="space-y-4">
+          {/* Tag和優先級區塊*/}
+          <div className="flex justify-between items-center">
+            {/* 如果是rootTodo，顯示標籤 */}
+            {localTodo.tags && localTodo.tags.length > 0 && !localTodo.parentId && (
+              <div className="flex flex-wrap gap-1">
+                {localTodo.tags.map(tag => (
+                  <Tag 
+                    key={tag.id}
+                    style={{ backgroundColor: tag.color, color: '#fff' }}
+                  >
+                    {tag.name}
+                  </Tag>
+                ))}
+              </div>
+            )}
+            
+            <Tag color={priorityColors[localTodo.priority]} className="ml-auto">
+              {priorityLabels[localTodo.priority]}
+            </Tag>
+          </div>
+
           <div className="flex items-center gap-3">
             <Checkbox
               checked={localChecked}
@@ -176,9 +197,6 @@ function TodoItem({ todo }) {
                 <span className={`text-lg ${localChecked ? 'line-through text-gray-500' : ''}`}>
                   {localTodo.title}
                 </span>
-                <Tag color={priorityColors[localTodo.priority]}>
-                  {priorityLabels[localTodo.priority]}
-                </Tag>
               </div>
             </div>
           </div>
@@ -273,7 +291,8 @@ TodoItem.propTypes = {
     dueDate: PropTypes.string,
     priority: PropTypes.number,
     parentId: PropTypes.number,
-    subTasks: PropTypes.array
+    subTasks: PropTypes.array,
+    tags: PropTypes.array
   }).isRequired
 };
 
