@@ -1,26 +1,8 @@
 services:
-  # Frontend application in development mode
-  frontend:
+  vite-react-app:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     ports:
       - "5173:5173"
-    volumes:
-      # Mount source code for hot reloading
-      - ./src:/app/src
-      - ./index.html:/app/index.html
-      - ./public:/app/public
-      # Exclude node_modules from the mounting
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
-    # 使用 container_name 可以讓容器名稱固定
-    container_name: todo-frontend-dev
-    networks:
-      - todo-network
-
-networks:
-  # 使用 external 網絡可以連接到已存在的後端容器
-  todo-network:
-    external: true
+    restart: unless-stopped

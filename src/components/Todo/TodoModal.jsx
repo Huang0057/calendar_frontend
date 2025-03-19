@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { Form, Input, DatePicker, Radio, Button, Modal } from 'antd';
+import { Form, Input, DatePicker, Radio, Button, Modal, Select } from 'antd';
 import dayjs from 'dayjs';
 
 const { TextArea } = Input;
 
-function TodoModal({ todo, parentId, open, onCancel, onSubmit }) {
+function TodoModal({ todo, parentId, open, onCancel, onSubmit, tags = [] }) {
   const [form] = Form.useForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -20,7 +20,8 @@ function TodoModal({ todo, parentId, open, onCancel, onSubmit }) {
       const submitData = {
         ...values,
         dueDate: values.dueDate?.toISOString(),
-        priority: Number(values.priority)
+        priority: Number(values.priority),
+        tagIds: values.tagIds || []
       };
 
       if (isEditMode) {
@@ -51,12 +52,14 @@ function TodoModal({ todo, parentId, open, onCancel, onSubmit }) {
           title: todo.title,
           description: todo.description,
           dueDate: todo.dueDate ? dayjs(todo.dueDate) : null,
-          priority: todo.priority
+          priority: todo.priority,
+          tagIds: todo.tags?.map(tag => tag.id) || []
         });
       } else {
         // 新增模式
         form.resetFields();
         form.setFieldValue('priority', 1);
+        form.setFieldValue('tagIds', []);
       }
     }
   }, [open, todo, form, isEditMode]);
@@ -108,6 +111,22 @@ function TodoModal({ todo, parentId, open, onCancel, onSubmit }) {
           </Radio.Group>
         </Form.Item>
 
+        <Form.Item
+          name="tagIds"
+          label="Tags"
+        >
+          <Select
+            mode="multiple"
+            placeholder="Select tags"
+            style={{ width: '100%' }}
+            options={tags.map(tag => ({ 
+              label: tag.name, 
+              value: tag.id 
+            }))}
+            optionFilterProp="label"
+          />
+        </Form.Item>
+
         <Form.Item className="mb-0">
           <div className="flex justify-end gap-2">
             <Button onClick={onCancel} disabled={isSubmitting}>
@@ -139,12 +158,14 @@ TodoModal.propTypes = {
     dueDate: PropTypes.string,
     priority: PropTypes.number,
     parentId: PropTypes.number,
-    subTasks: PropTypes.array
+    subTasks: PropTypes.array,
+    tags: PropTypes.array
   }),
   parentId: PropTypes.number,
   open: PropTypes.bool.isRequired,
   onCancel: PropTypes.func.isRequired,
-  onSubmit: PropTypes.func.isRequired
+  onSubmit: PropTypes.func.isRequired,
+  tags: PropTypes.array
 };
 
 export default TodoModal;

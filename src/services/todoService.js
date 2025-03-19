@@ -6,6 +6,12 @@ export async function getTodos() {
   return response.json();
 }
 
+export async function getTags() {
+  const response = await fetch('/api/Tag');
+  if (!response.ok) throw new Error('Failed to fetch tags');
+  return response.json();
+}
+
 export async function createTodo(todo) {
   const endpoint = todo.parentId 
     ? `${API_URL}/${todo.parentId}/subtasks`  // 創建子任務
@@ -22,7 +28,8 @@ export async function createTodo(todo) {
       isCompleted: todo.isCompleted || false,
       dueDate: todo.dueDate || new Date().toISOString(),
       priority: todo.priority || 0,
-      parentId: todo.parentId || null
+      parentId: todo.parentId || null,
+      tagIds: todo.tagIds || []
     }),
   });
 

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { getTodos, createTodo, updateTodo, deleteTodo } from '../services/todoService';
+import { getTodos, getTags, createTodo, updateTodo, deleteTodo } from '../services/todoService';
 
 export function useTodo() {
   const [todos, setTodos] = useState([]);
+  const [tags, setTags] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTagsLoading, setIsTagsLoading] = useState(true);
 
   const fetchTodos = async () => {
     setIsLoading(true);
@@ -17,8 +19,21 @@ export function useTodo() {
     }
   };
 
+  const fetchTags = async () => {
+    setIsTagsLoading(true);
+    try {
+      const data = await getTags();
+      setTags(data);
+    } catch (error) {
+      console.error('Failed to fetch tags:', error);
+    } finally {
+      setIsTagsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchTodos();
+    fetchTags();
   }, []);
 
   const updateTodoInState = (updatedTodo) => {
@@ -117,9 +132,12 @@ export function useTodo() {
   return {
     todos,
     isLoading,
+    tags,
+    isTagsLoading,
     addTodo,
     updateTodoItem,
     removeTodo,
-    fetchTodos
+    fetchTodos,
+    fetchTags
   };
 }
